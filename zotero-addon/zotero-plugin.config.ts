@@ -8,6 +8,8 @@ export default defineConfig({
   id: pkg.config.addonID,
   namespace: pkg.config.addonRef,
   xpiName: pkg.name,
+  updateURL:
+    "https://raw.githubusercontent.com/Wang-Wen-Hui/notebook-zotero-backlink/main/update.json",
   build: {
     assets: ["addon/**/*.*"],
     define: {
