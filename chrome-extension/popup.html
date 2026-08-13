@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <h1>Notebook → Zotero</h1>
+    <p id="selected-item">正在检查 Zotero…</p>
+    <button
+      data-action="captureSelection"
+      data-working="正在保存选中文字…"
+      disabled
+    >
+      保存选中文字为 Zotero 笔记
+    </button>
+    <button
+      data-action="captureGeneratedOutput"
+      data-working="正在读取右侧生成物…"
+      disabled
+    >
+      保存当前打开的右侧生成物
+    </button>
+    <button
+      class="highlight"
+      data-action="captureCitation"
+      data-working="正在 Zotero PDF 中匹配原文…"
+      disabled
+    >
+      定位引用原文并创建 PDF 高亮
+    </button>
+    <p class="hint">
+      保存生成物前先打开 Studio 笔记并点击正文；高亮前把鼠标停在引用编号上，
+      等“View source”出现后再打开本扩展。PDF 定位会使用重叠的 8 词短语，
+      以避开换行、角标和连字符差异。
+    </p>
+    <p id="status" role="status"></p>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Notebook → Zotero Backlink",
+  "version": "0.2.4",
+  "description": "Save Gemini Notebook outputs and source evidence to Zotero",
+  "permissions": ["activeTab"],
+  "host_permissions": [
+    "http://127.0.0.1:23119/*",
+    "https://notebook.google.com/*",
+    "https://notebooklm.google.com/*"
+  ],
+  "action": { "default_popup": "popup.html" },
+  "content_scripts": [{
+    "matches": ["https://notebook.google.com/*", "https://notebooklm.google.com/*"],
+    "js": ["content.js"],
+    "run_at": "document_idle"
+  }]
+}

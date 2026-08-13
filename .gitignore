@@ -1,0 +1,16 @@
+# Local dependencies and build caches
+node_modules/
+zotero-addon/node_modules/
+zotero-addon/.scaffold/
+zotero-addon/tsconfig.tsbuildinfo
+*.log
+.env
+
+# Release binaries are uploaded to GitHub Releases instead of committed
+release/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

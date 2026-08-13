@@ -1,0 +1,60 @@
+{
+  "name": "notebook-zotero-backlink",
+  "type": "module",
+  "version": "0.2.5",
+  "description": "Save Gemini Notebook outputs and cited PDF evidence in Zotero",
+  "config": {
+    "addonName": "Notebook Zotero Backlink",
+    "addonID": "notebook-zotero-backlink@example.com",
+    "addonRef": "notebookZoteroBacklink",
+    "addonInstance": "NotebookZoteroBacklink",
+    "prefsPrefix": "extensions.zotero.notebookZoteroBacklink"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wang-Wen-Hui/notebook-zotero-backlink.git"
+  },
+  "author": "Wang-Wen-Hui",
+  "homepage": "https://github.com/Wang-Wen-Hui/notebook-zotero-backlink",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "start": "zotero-plugin serve",
+    "build": "zotero-plugin build && tsc --noEmit",
+    "lint:check": "prettier --check . && eslint .",
+    "lint:fix": "prettier --write . && eslint . --fix",
+    "test": "zotero-plugin test",
+    "update-deps": "pnpm update"
+  },
+  "dependencies": {
+    "zotero-plugin-toolkit": "^5.1.4"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.10.0",
+    "@zotero-plugin/eslint-config": "^0.6.7",
+    "chai": "^6.2.1",
+    "eslint": "^9.39.2",
+    "mocha": "^11.7.5",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "zotero-plugin-scaffold": "^0.8.2",
+    "zotero-types": "^4.1.0-beta.4"
+  },
+  "prettier": {
+    "printWidth": 80,
+    "tabWidth": 2,
+    "endOfLine": "lf",
+    "overrides": [
+      {
+        "files": [
+          "*.xhtml"
+        ],
+        "options": {
+          "htmlWhitespaceSensitivity": "css"
+        }
+      }
+    ]
+  }
+}

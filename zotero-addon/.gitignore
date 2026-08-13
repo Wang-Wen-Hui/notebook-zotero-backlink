@@ -1,0 +1,12 @@
+# Node.js
+node_modules/
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# Zotero plugin scaffold
+.env
+.scaffold/
+build/
+logs/
+*.xpi
