@@ -9,6 +9,20 @@ const normalizeText = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
+// Notebook renders inline formulas as many nested DOM nodes. Browser selection
+// text can therefore contain hard line breaks between pieces such as k/cat,
+// K/M, and s/−1. A Zotero note would preserve those artificial breaks. Flatten
+// selection whitespace and let Zotero wrap the resulting paragraph naturally.
+const cleanSelectionText = (value) =>
+  normalizeText(value)
+    .replace(/\s+([，。！？；：、,.!?;:)\]}])/g, "$1")
+    .replace(/([(\[{])\s+/g, "$1")
+    .replace(/\bk\s+cat\b/gi, "kcat")
+    .replace(/\bK\s+M\b/g, "KM")
+    .replace(/\b([A-Za-z])\s+([−–-])\s*(\d+)\b/g, "$1$2$3")
+    .replace(/\s*=\s*/g, " = ")
+    .trim();
+
 const isVisible = (element) => {
   if (!(element instanceof Element)) return false;
   const rect = element.getBoundingClientRect();
@@ -312,7 +326,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const selection = window.getSelection()?.toString().trim() || lastSelection;
     sendResponse({
       kind: "selection",
-      quote: selection,
+      quote: cleanSelectionText(selection),
       sourceLabel: notebookTitle(),
       notebookURL: location.href,
     });
