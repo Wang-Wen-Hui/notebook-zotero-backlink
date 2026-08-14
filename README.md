@@ -16,7 +16,7 @@ a third-party server.
 
 | Component | Version / compatibility |
 | --- | --- |
-| Zotero add-on | 0.2.5 |
+| Zotero add-on | 0.2.6 |
 | Chrome extension | 0.2.5 (Manifest V3) |
 | Zotero | Zotero 9 |
 | Gemini Notebook / NotebookLM | Current web version at `notebook.google.com` and `notebooklm.google.com` |
@@ -115,7 +115,7 @@ Chrome 扩展和 Zotero 插件组成。
 它可以将 Notebook 中选中的文字或当前打开的 Studio 生成物保存为 Zotero
 子笔记，也可以提取引用弹窗中的原文，并在当前选中文献的 PDF 中定位对应位置。
 
-当前组件版本为 Zotero 插件 **0.2.5**、Chrome 扩展 **0.2.5**，面向
+当前组件版本为 Zotero 插件 **0.2.6**、Chrome 扩展 **0.2.5**，面向
 **Zotero 9**。Google 的 Gemini Notebook 是持续更新的网页服务，没有固定的
 桌面软件版本号；本项目支持 `notebook.google.com` 和
 `notebooklm.google.com`。
