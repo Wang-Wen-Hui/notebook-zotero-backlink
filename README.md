@@ -1,3 +1,7 @@
+<img width="1440" height="898" alt="image" src="https://github.com/user-attachments/assets/e8327743-5bd0-4fe2-90f5-a9060794566b" />
+<img width="381" height="370" alt="image" src="https://github.com/user-attachments/assets/767c91e4-9f7c-455f-b15c-03d76d506b9b" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/289694ff-6440-4cdc-84d0-ed394bd083c7" />
+
 # Notebook ↔ Zotero Backlink
 
 [中文](#中文说明) | [English](#english)
