@@ -1,4 +1,5 @@
 let lastSelection = "";
+let lastSelectionHTML = "";
 let lastInteractionTarget = null;
 let lastCitation = null;
 let citationScanScheduled = false;
@@ -23,6 +24,147 @@ const cleanSelectionText = (value) =>
     .replace(/\s*=\s*/g, " = ")
     .trim();
 
+const RICH_TEXT_TAGS = new Set([
+  "a",
+  "blockquote",
+  "br",
+  "code",
+  "div",
+  "em",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "s",
+  "strong",
+  "sub",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "th",
+  "thead",
+  "tr",
+  "u",
+  "ul",
+]);
+
+const DROP_RICH_TEXT_TAGS = new Set([
+  "button",
+  "canvas",
+  "form",
+  "iframe",
+  "input",
+  "noscript",
+  "script",
+  "select",
+  "style",
+  "svg",
+  "textarea",
+]);
+
+const NOTEBOOK_UI_TEXT = new Set([
+  "Saved responses are view only",
+  "Convert to source",
+  "Convert all notes to source",
+  "Export to Docs",
+  "Export to Sheets",
+  "Delete",
+  "View source",
+]);
+
+function safeLink(href) {
+  if (!href) return "";
+  try {
+    const url = new URL(href, location.href);
+    return ["http:", "https:", "mailto:"].includes(url.protocol)
+      ? url.href
+      : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+function isCitationMarker(element) {
+  const text = normalizeText(element.textContent);
+  if (!/^\[?\d{1,3}\]?$/.test(text)) return false;
+  const aria = `${element.getAttribute("aria-label") || ""} ${
+    element.getAttribute("data-tooltip") || ""
+  }`.toLocaleLowerCase();
+  return (
+    element.matches("sup, button, [role='button'], a") ||
+    /citation|source|reference|引用|来源/.test(aria)
+  );
+}
+
+function semanticTag(element) {
+  const tag = element.tagName.toLocaleLowerCase();
+  if (tag === "b") return "strong";
+  if (tag === "i") return "em";
+  if (tag === "strike" || tag === "del") return "s";
+  if (["article", "main", "section"].includes(tag)) return "div";
+  if (element.getAttribute("role") === "heading") return "h3";
+  return RICH_TEXT_TAGS.has(tag) ? tag : "";
+}
+
+function sanitizeRichNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return document.createTextNode(
+      String(node.nodeValue || "")
+        .replace(/\u00ad/g, "")
+        .replace(/\s+/g, " "),
+    );
+  }
+  if (!(node instanceof Element)) return document.createDocumentFragment();
+
+  const tag = node.tagName.toLocaleLowerCase();
+  const text = normalizeText(node.textContent);
+  if (
+    DROP_RICH_TEXT_TAGS.has(tag) ||
+    node.getAttribute("aria-hidden") === "true" ||
+    NOTEBOOK_UI_TEXT.has(text) ||
+    isCitationMarker(node)
+  ) {
+    return document.createDocumentFragment();
+  }
+
+  const outputTag = semanticTag(node);
+  const output = outputTag
+    ? document.createElement(outputTag)
+    : document.createDocumentFragment();
+  if (outputTag === "a") {
+    const href = safeLink(node.getAttribute("href"));
+    if (href) output.setAttribute("href", href);
+  }
+  for (const child of node.childNodes) output.append(sanitizeRichNode(child));
+  return output;
+}
+
+function richHTMLFromNodes(nodes) {
+  const wrapper = document.createElement("div");
+  for (const node of nodes) wrapper.append(sanitizeRichNode(node));
+  return wrapper.innerHTML.trim();
+}
+
+function selectedRichHTML(selection) {
+  if (!selection || selection.isCollapsed || !selection.rangeCount) return "";
+  const fragments = [];
+  for (let index = 0; index < selection.rangeCount; index += 1) {
+    fragments.push(...selection.getRangeAt(index).cloneContents().childNodes);
+  }
+  return richHTMLFromNodes(fragments);
+}
+
+function elementRichHTML(element) {
+  return richHTMLFromNodes(element.childNodes);
+}
+
 const isVisible = (element) => {
   if (!(element instanceof Element)) return false;
   const rect = element.getBoundingClientRect();
@@ -38,8 +180,12 @@ const isVisible = (element) => {
 };
 
 document.addEventListener("selectionchange", () => {
-  const selected = window.getSelection()?.toString().trim() || "";
-  if (selected) lastSelection = selected;
+  const selection = window.getSelection();
+  const selected = selection?.toString().trim() || "";
+  if (selected) {
+    lastSelection = selected;
+    lastSelectionHTML = selectedRichHTML(selection);
+  }
 });
 
 document.addEventListener(
@@ -54,7 +200,9 @@ function notebookTitle() {
   const heading = Array.from(
     document.querySelectorAll("h1, [role='heading'][aria-level='1']"),
   ).find(isVisible);
-  return normalizeText(heading?.textContent) || document.title || "Gemini Notebook";
+  return (
+    normalizeText(heading?.textContent) || document.title || "Gemini Notebook"
+  );
 }
 
 function meaningfulAncestors(start) {
@@ -80,25 +228,26 @@ function meaningfulAncestors(start) {
 }
 
 function findGeneratedOutputPanel() {
-  const marker = Array.from(document.querySelectorAll("body *")).find((element) => {
-    if (!isVisible(element)) return false;
-    const text = normalizeText(element.textContent);
-    return (
-      text === "Saved responses are view only" ||
-      text === "Convert to source" ||
-      text === "Export to Docs"
-    );
-  });
+  const marker = Array.from(document.querySelectorAll("body *")).find(
+    (element) => {
+      if (!isVisible(element)) return false;
+      const text = normalizeText(element.textContent);
+      return (
+        text === "Saved responses are view only" ||
+        text === "Convert to source" ||
+        text === "Export to Docs"
+      );
+    },
+  );
 
   const starts = [marker, lastInteractionTarget].filter(Boolean);
   let best = null;
   for (const start of starts) {
     for (const candidate of meaningfulAncestors(start)) {
-      const markerBonus = /Saved responses are view only|Convert to source/.test(
-        candidate.text,
-      )
-        ? 5000
-        : 0;
+      const markerBonus =
+        /Saved responses are view only|Convert to source/.test(candidate.text)
+          ? 5000
+          : 0;
       const widthBonus = candidate.rect.width <= innerWidth * 0.7 ? 500 : 0;
       const score = markerBonus + widthBonus - candidate.text.length / 100;
       if (!best || score > best.score) best = { ...candidate, score };
@@ -130,7 +279,9 @@ function cleanGeneratedText(text) {
 function captureGeneratedOutput() {
   const panel = findGeneratedOutputPanel();
   if (!panel) {
-    return { error: "Open a Studio note, click inside its text, then try again." };
+    return {
+      error: "Open a Studio note, click inside its text, then try again.",
+    };
   }
   const content = cleanGeneratedText(panel.innerText || panel.textContent);
   if (content.length < 80) {
@@ -142,8 +293,12 @@ function captureGeneratedOutput() {
   const firstLine = content.split("\n").find(Boolean);
   return {
     kind: "generated-output",
-    title: normalizeText(heading?.textContent) || firstLine || "Gemini Notebook output",
+    title:
+      normalizeText(heading?.textContent) ||
+      firstLine ||
+      "Gemini Notebook output",
     content,
+    contentHTML: elementRichHTML(panel),
     sourceLabel: notebookTitle(),
     notebookURL: location.href,
   };
@@ -197,7 +352,8 @@ function citationTextCandidates(container) {
 
     const cleaned = textWithoutCitationMarkers(element);
     for (const value of [cleaned, raw]) {
-      if (value.length >= 35 && !candidates.includes(value)) candidates.push(value);
+      if (value.length >= 35 && !candidates.includes(value))
+        candidates.push(value);
     }
   }
   return candidates.sort((a, b) => b.length - a.length).slice(0, 18);
@@ -229,9 +385,12 @@ function wordWindows(text, windowSize = 8) {
 }
 
 function findCitationPopup() {
-  const viewSource = Array.from(document.querySelectorAll("a, button, body *")).find(
+  const viewSource = Array.from(
+    document.querySelectorAll("a, button, body *"),
+  ).find(
     (element) =>
-      isVisible(element) && normalizeText(element.textContent) === "View source",
+      isVisible(element) &&
+      normalizeText(element.textContent) === "View source",
   );
   if (!viewSource) return null;
 
@@ -310,7 +469,8 @@ function captureCitation() {
     };
   }
   return {
-    error: "Hover over a numbered citation until View source appears, then open this extension.",
+    error:
+      "Hover over a numbered citation until View source appears, then open this extension.",
   };
 }
 
@@ -323,10 +483,12 @@ new MutationObserver(scheduleCitationScan).observe(document.documentElement, {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === "captureSelection") {
-    const selection = window.getSelection()?.toString().trim() || lastSelection;
+    const currentSelection = window.getSelection();
+    const selection = currentSelection?.toString().trim() || lastSelection;
     sendResponse({
       kind: "selection",
       quote: cleanSelectionText(selection),
+      quoteHTML: selectedRichHTML(currentSelection) || lastSelectionHTML,
       sourceLabel: notebookTitle(),
       notebookURL: location.href,
     });

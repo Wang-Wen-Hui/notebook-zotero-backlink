@@ -1,7 +1,7 @@
 {
   "name": "notebook-zotero-backlink",
   "type": "module",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Save Gemini Notebook outputs and cited PDF evidence in Zotero",
   "config": {
     "addonName": "Notebook Zotero Backlink",

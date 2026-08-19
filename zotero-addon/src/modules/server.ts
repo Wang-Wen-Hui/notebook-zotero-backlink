@@ -10,8 +10,10 @@ const CORS_HEADERS = {
 type ImportPayload = {
   kind?: "selection" | "generated-output" | "citation-highlight";
   quote?: string;
+  quoteHTML?: string;
   quoteCandidates?: string[];
   content?: string;
+  contentHTML?: string;
   title?: string;
   sourceLabel?: string;
   notebookURL?: string;
@@ -53,6 +55,90 @@ function safeText(value: unknown, maxLength = 100000): string {
     .slice(0, maxLength);
 }
 
+const RICH_TEXT_TAGS = new Set([
+  "a",
+  "blockquote",
+  "br",
+  "code",
+  "div",
+  "em",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "s",
+  "strong",
+  "sub",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "th",
+  "thead",
+  "tr",
+  "u",
+  "ul",
+]);
+
+const DROP_RICH_TEXT_TAGS = new Set([
+  "button",
+  "canvas",
+  "form",
+  "iframe",
+  "input",
+  "noscript",
+  "script",
+  "select",
+  "style",
+  "svg",
+  "textarea",
+]);
+
+function safeLink(value: string): string {
+  try {
+    const url = new URL(value);
+    return ["http:", "https:", "mailto:"].includes(url.protocol)
+      ? url.href
+      : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+function sanitizeRichNode(node: Node | null): string {
+  if (!node) return "";
+  if (node.nodeType === Node.TEXT_NODE) {
+    return escapeHTML(node.nodeValue || "");
+  }
+  if (!(node instanceof Element)) return "";
+
+  const tag = node.tagName.toLocaleLowerCase();
+  if (DROP_RICH_TEXT_TAGS.has(tag)) return "";
+  const children = Array.from(node.childNodes).map(sanitizeRichNode).join("");
+  if (!RICH_TEXT_TAGS.has(tag)) return children;
+  if (tag === "br") return "<br>";
+  if (tag === "a") {
+    const href = safeLink(node.getAttribute("href") || "");
+    return href ? `<a href="${escapeHTML(href)}">${children}</a>` : children;
+  }
+  return `<${tag}>${children}</${tag}>`;
+}
+
+function sanitizeRichHTML(value: unknown): string {
+  const html = safeText(value, 200000);
+  if (!html) return "";
+  const document = new DOMParser().parseFromString(html, "text/html");
+  return document.body
+    ? Array.from(document.body.childNodes).map(sanitizeRichNode).join("")
+    : "";
+}
+
 function notebookLink(url: string): string {
   return url
     ? `<p><a href="${escapeHTML(url)}">Open this Gemini Notebook</a></p>`
@@ -75,9 +161,13 @@ async function createChildNote(payload: ImportPayload) {
   const title = generated
     ? requestedTitle || "Gemini Notebook output"
     : "Gemini Notebook evidence";
+  const richBody = sanitizeRichHTML(
+    generated ? payload.contentHTML : payload.quoteHTML,
+  );
+  const fallbackBody = escapeHTML(body).replace(/\n/g, "<br>");
   const bodyHTML = generated
-    ? `<div>${escapeHTML(body).replace(/\n/g, "<br>")}</div>`
-    : `<blockquote>${escapeHTML(body).replace(/\n/g, "<br>")}</blockquote>`;
+    ? `<div>${richBody || fallbackBody}</div>`
+    : `<blockquote>${richBody || fallbackBody}</blockquote>`;
 
   const note = new Zotero.Item("note");
   note.libraryID = target.parent.libraryID;
