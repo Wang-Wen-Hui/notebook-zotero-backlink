@@ -101,30 +101,27 @@ const DROP_RICH_TEXT_TAGS = new Set([
 ]);
 
 function safeLink(value: string): string {
-  try {
-    const url = new URL(value);
-    return ["http:", "https:", "mailto:"].includes(url.protocol)
-      ? url.href
-      : "";
-  } catch (_error) {
-    return "";
-  }
+  const link = value.trim();
+  return /^(https?:\/\/|mailto:)/i.test(link) ? link : "";
 }
 
 function sanitizeRichNode(node: Node | null): string {
   if (!node) return "";
-  if (node.nodeType === Node.TEXT_NODE) {
+  if (node.nodeType === 3) {
     return escapeHTML(node.nodeValue || "");
   }
-  if (!(node instanceof Element)) return "";
+  if (node.nodeType !== 1) return "";
 
-  const tag = node.tagName.toLocaleLowerCase();
+  const element = node as Element;
+  const tag = element.tagName.toLocaleLowerCase();
   if (DROP_RICH_TEXT_TAGS.has(tag)) return "";
-  const children = Array.from(node.childNodes).map(sanitizeRichNode).join("");
+  const children = Array.from(element.childNodes)
+    .map(sanitizeRichNode)
+    .join("");
   if (!RICH_TEXT_TAGS.has(tag)) return children;
   if (tag === "br") return "<br>";
   if (tag === "a") {
-    const href = safeLink(node.getAttribute("href") || "");
+    const href = safeLink(element.getAttribute("href") || "");
     return href ? `<a href="${escapeHTML(href)}">${children}</a>` : children;
   }
   return `<${tag}>${children}</${tag}>`;

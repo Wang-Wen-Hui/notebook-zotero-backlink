@@ -5,7 +5,7 @@
         {
           "version": "0.2.7",
           "update_link": "https://github.com/Wang-Wen-Hui/notebook-zotero-backlink/releases/download/v0.2.7/notebook-zotero-backlink.xpi",
-          "update_hash": "sha512:9d7c866bec1a6e8782c760982c3b12ea975deb0f2ab56f02267e3f271ca384f9daf80d5bf653c4b80096b20c5f57b9417137f04ba099f76c262b7e3c1799e6ad",
+          "update_hash": "sha512:f754e1f567493891edc23bba6fa5c263842648eb5925d5d71131807fba2fab9813a0cd5baab8da140b1a95e619608d341defe9e10a8e5e4ee35cda1b410c9f89",
           "applications": {
             "zotero": {
               "strict_min_version": "6.999",
